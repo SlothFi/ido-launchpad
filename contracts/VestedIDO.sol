@@ -1,9 +1,13 @@
-pragma solidity 0.6.12;
+// SPDX-License-Identifier: MIT
 
-import "github.com/OpenZeppelin/openzeppelin-contracts/blob/release-v3.1.0/contracts/access/Ownable.sol";
-import "github.com/OpenZeppelin/openzeppelin-contracts/blob/release-v3.1.0/contracts/token/ERC20/SafeERC20.sol";
-import "github.com/OpenZeppelin/openzeppelin-contracts/blob/release-v3.1.0/contracts/utils/Pausable.sol";
-import "github.com/OpenZeppelin/openzeppelin-contracts/blob/release-v3.1.0/contracts/utils/ReentrancyGuard.sol";
+pragma solidity 0.8.9;
+
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { IERC20, SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import { Pausable } from "@openzeppelin/contracts/security/Pausable.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+
 
      //\\___
     //  \\
@@ -77,7 +81,7 @@ contract ArtemisIDO is ReentrancyGuard {
         address _adminAddress,
         IERC20 _collateralToken,
         uint256 _requiredCollateralAmount
-    ) public {
+    ) {
 
         _raisingToken.balanceOf(address(this));     // Validate token address
         _offeringToken.balanceOf(address(this));    // Validate token address
@@ -249,7 +253,7 @@ contract ArtemisIDO is ReentrancyGuard {
         raisingToken.safeTransfer(msg.sender, _lpAmount);
     }
 
-    function changeRequiredCollateralAmount(uint256 _newCollateralAmount) public onlyAdmin returns (bool) {
+    function changeRequiredCollateralAmount(uint256 _newCollateralAmount) public onlyAdmin {
         require (block.number < startBlock, 'ifo already started!');
         uint256 oldCollateralAmount = requiredCollateralAmount;
         requiredCollateralAmount = _newCollateralAmount;
