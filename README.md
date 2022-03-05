@@ -1,3 +1,19 @@
-# Artemis
+# IDO Contracts
 
-This folder contains Artemis IDO contracts. It will be updated to include mis + masterchef + incubator + hades contracts & its addresses.
+This folder contains IDO contracts. 
+
+To run
+## Install dependencies
+`npm install`
+
+`npx hardhat compile`
+
+## Run tests
+`npx hardhat test`
+
+
+## Deploy contracts to testnet
+`npx hardhat run ./scripts/deploy.ts --network harmonytest`
+
+## Deploy contracts to mainnet
+`npx hardhat run ./scripts/deploy.ts --network harmonymain`
