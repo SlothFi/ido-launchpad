@@ -82,7 +82,6 @@ contract SlothIDO is ReentrancyGuard {
         IERC20 _collateralToken,
         uint256 _requiredCollateralAmount
     ) {
-
         _raisingToken.balanceOf(address(this));     // Validate token address
         _offeringToken.balanceOf(address(this));    // Validate token address
         _collateralToken.balanceOf(address(this));  // Validate token address
