@@ -9,6 +9,9 @@ import "solidity-coverage";
 
 dotenv.config();
 
+const privateKey = process.env.PRIVATE_KEY;
+const privateKey2 = process.env.PRIVATE_KEY2;
+
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
 task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
@@ -29,6 +32,20 @@ const config: HardhatUserConfig = {
       url: process.env.ROPSTEN_URL || "",
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+    },
+    harmonymain: {
+      url: "https://api.harmony.one",
+      accounts: privateKey && privateKey2 ? [privateKey, privateKey2] : [],
+      chainId: 1666600000,
+      gas: 8500000,
+      gasPrice: 199000000000,
+    },
+    harmonytest: {
+      url: "https://api.s0.b.hmny.io",
+      accounts: privateKey && privateKey2 ? [privateKey, privateKey2] : [],
+      chainId: 1666700000,
+      gas: 8500000,
+      gasPrice: 31000000000,
     },
   },
   gasReporter: {

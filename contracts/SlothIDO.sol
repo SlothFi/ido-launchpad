@@ -16,7 +16,7 @@ import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuar
  //   \/   \\    
 //          \\    
 
-contract ArtemisIDO is ReentrancyGuard {
+contract SlothIDO is ReentrancyGuard {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -86,10 +86,10 @@ contract ArtemisIDO is ReentrancyGuard {
         _raisingToken.balanceOf(address(this));     // Validate token address
         _offeringToken.balanceOf(address(this));    // Validate token address
         _collateralToken.balanceOf(address(this));  // Validate token address
-        require(_endBlock > _startBlock, 'start <= end');
-        require(_claimBlock >= _endBlock, 'claim has to be >= end');
-        require(_startBlock > block.number, 'too soon');
-        require(_adminAddress != address(0));
+        require(_endBlock > _startBlock, "start <= end");
+        require(_claimBlock >= _endBlock, "claim has to be >= end");
+        require(_startBlock > block.number, "too soon");
+        require(_adminAddress != address(0), "admin is address(0)");
 
         raisingToken = _raisingToken;
         offeringToken = _offeringToken;
@@ -110,43 +110,44 @@ contract ArtemisIDO is ReentrancyGuard {
     }
 
     function setOfferingAmount(uint256 _offerAmount) public onlyAdmin {
-        require (block.number < startBlock, 'ido has already started');
+        require (block.number < startBlock, "ido has already started");
         offeringAmount = _offerAmount;
     }
 
     function setRaisingAmount(uint256 _raisingAmount) public onlyAdmin {
-        require (block.number < startBlock, 'ido has already started');
+        require (block.number < startBlock, "ido has already started");
         raisingAmount= _raisingAmount;
     }
 
     function setStartBlock(uint256 _startBlock) public onlyAdmin {
-        require (block.number < startBlock, 'ido has already started');
+        require (block.number < startBlock, "ido has already started");
         startBlock= _startBlock;
     }
 
     function setEndBlock(uint256 _endBlock) public onlyAdmin {
-        require (block.number < startBlock, 'ido has already started');
+        require (block.number < startBlock, "ido has already started");
         endBlock= _endBlock;
     }
 
     function setClaimBlock(uint256 _claimBlock) public onlyAdmin {
-        require(block.number < startBlock, 'ido has already started');
+        require(block.number < startBlock, "ido has already started");
         claimBlock = _claimBlock;
     }
 
     function setRaisingToken(IERC20 _raisingToken) public onlyAdmin {
-        require (block.number < startBlock, 'ido has already started');
+        require (block.number < startBlock, "ido has already started");
         raisingToken= _raisingToken;
     }
 
     function setOfferingToken(IERC20 _offeringToken) public onlyAdmin {
-        require (block.number < startBlock, 'ido has already started');
+        require (block.number < startBlock, "ido has already started");
         offeringToken= _offeringToken;
     }
 
     function depositCollateral() public {
-        require (block.number > startBlock && block.number < endBlock, 'ido has not started yet');
-        require (!userInfo[msg.sender].hasCollateral, 'user has already staked collateral');
+        require (block.number > startBlock, "ido has not started yet");
+        require (block.number < endBlock, "ido has ended");
+        require (!userInfo[msg.sender].hasCollateral, "user has already staked collateral");
 
         uint256 collateral_amount = collateralToken.balanceOf(msg.sender);
         require(collateral_amount >= requiredCollateralAmount, "depositCollateral:insufficient collateral");
@@ -159,9 +160,9 @@ contract ArtemisIDO is ReentrancyGuard {
     }
 
     function deposit(uint256 _amount) public {
-        require (block.number > startBlock && block.number < endBlock, 'not ifo time');
-        require (_amount > 0, 'need _amount > 0');
-        require (userInfo[msg.sender].hasCollateral, 'user needs to stake collateral first');
+        require (block.number > startBlock && block.number < endBlock, "not ifo time");
+        require (_amount > 0, "need _amount > 0");
+        require (userInfo[msg.sender].hasCollateral, "user needs to stake collateral first");
 
         if (userInfo[msg.sender].amount == 0) {
             addressList.push(msg.sender);
@@ -175,9 +176,9 @@ contract ArtemisIDO is ReentrancyGuard {
     function harvest() public nonReentrant {
         // Can only be called once for each user
         // Will refund collateral, give tokens for sale, and return an overflow raisingToken
-        require (block.number > endBlock + claimBlock, 'not harvest time');
-        require (!userInfo[msg.sender].claimed, 'already claimed');
-        require (userInfo[msg.sender].hasCollateral, 'user needs to stake collateral first');
+        require (block.number > claimBlock, "not harvest time");
+        require (!userInfo[msg.sender].claimed, "already claimed");
+        require (userInfo[msg.sender].hasCollateral, "user needs to stake collateral first");
         uint256 offeringTokenAmount = getOfferingAmount(msg.sender);
         uint256 refundingTokenAmount = getRefundingAmount(msg.sender);
 
@@ -203,6 +204,9 @@ contract ArtemisIDO is ReentrancyGuard {
 
     // Allocation 100000 means 0.1(10%), 1 meanss 0.000001(0.0001%), 1000000 means 1(100%)
     function getUserAllocation(address _user) public view returns(uint256) {
+        if (totalAmount == 0) {
+            return 0;
+        }
         return userInfo[_user].amount.mul(1e6).div(totalAmount);
     }
 
@@ -239,22 +243,22 @@ contract ArtemisIDO is ReentrancyGuard {
     }
 
     function finalOfferingTokenWithdraw() public onlyAdmin {
-        require (block.number > endBlock + delayForFullSweep, 'Must wait longer');
+        require (block.number > endBlock + delayForFullSweep, "Must wait longer");
         offeringToken.safeTransfer(msg.sender, offeringToken.balanceOf(address(this)));
     }
 
     function finalWithdraw(uint256 _lpAmount) public onlyAdmin {
         if (block.number < endBlock + delayForFullSweep) {
             // Only check this condition for the first 14 days after IFO
-            require (_lpAmount + totalAdminLpWithdrawn <= raisingAmount, 'withdraw exceeds raisingAmount');
+            require (_lpAmount + totalAdminLpWithdrawn <= raisingAmount, "withdraw exceeds raisingAmount");
         }
-        require (_lpAmount <= raisingToken.balanceOf(address(this)), 'not enough token 0');
+        require (_lpAmount <= raisingToken.balanceOf(address(this)), "not enough token 0");
         totalAdminLpWithdrawn = totalAdminLpWithdrawn + _lpAmount;
         raisingToken.safeTransfer(msg.sender, _lpAmount);
     }
 
     function changeRequiredCollateralAmount(uint256 _newCollateralAmount) public onlyAdmin {
-        require (block.number < startBlock, 'ifo already started!');
+        require (block.number < startBlock, "ifo already started!");
         uint256 oldCollateralAmount = requiredCollateralAmount;
         requiredCollateralAmount = _newCollateralAmount;
         emit RequiredCollateralChanged(
