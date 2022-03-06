@@ -17,6 +17,7 @@ describe("SlothIDO", function () {
   const totalSupply = ethers.utils.parseEther("1000000");
   const offeringAmount = ethers.utils.parseEther("10000");
   const raisingAmount = ethers.utils.parseEther("1000");
+  const maxContributionAmount = ethers.utils.parseEther("1000");
   const requiredCollateralAmount = ethers.utils.parseEther("100");
 
   beforeEach(async () => {
@@ -42,22 +43,23 @@ describe("SlothIDO", function () {
     mon = await FixedSupplyToken.deploy("DeFimons", "MON", totalSupply);
     await mon.deployed();
 
-    const currentBlock = (await ethers.provider.getBlock("latest")).number;
-    const startBlock = currentBlock + 10;
+    const currentTime = (await ethers.provider.getBlock("latest")).timestamp;
+    const startTime = currentTime + 3600;
 
     // A new block is mined for each tx on hardhat network
-    const endBlock = currentBlock + 100;
-    const claimBlock = currentBlock + 110;
+    const endTime = currentTime + 7200;
+    const claimTime = currentTime + 7500;
 
     const SlothIDO = await ethers.getContractFactory("SlothIDO");
     ido = await SlothIDO.deploy(
       wone.address,
       gme.address,
-      startBlock,
-      endBlock,
-      claimBlock,
+      startTime,
+      endTime,
+      claimTime,
       offeringAmount,
       raisingAmount,
+      maxContributionAmount,
       admin.address,
       mon.address,
       requiredCollateralAmount
@@ -86,7 +88,8 @@ describe("SlothIDO", function () {
     expect(await ido.hasCollateral(participant1.address)).to.equal(false);
 
     // mine some blocks to move time past start
-    network.provider.send("hardhat_mine", ["0xA"]);
+    await network.provider.send("evm_increaseTime", [3600]);
+    await network.provider.send("evm_mine");
 
     // Check that deposited collateral is the right amount
     const balanceBefore = await mon.balanceOf(participant1.address);
@@ -116,7 +119,8 @@ describe("SlothIDO", function () {
     await expect(ido.connect(participant1).harvest()).to.be.reverted;
 
     // Mine some blocks to move past claim time
-    network.provider.send("hardhat_mine", ["0xff"]);
+    await network.provider.send("evm_increaseTime", [7200]);
+    await network.provider.send("evm_mine");
 
     await ido.connect(participant1).harvest();
     const gmeBalanceAfter = await gme.balanceOf(participant1.address);
@@ -145,7 +149,8 @@ describe("SlothIDO", function () {
       .approve(ido.address, requiredCollateralAmount);
 
     // mine some blocks to move time past start
-    network.provider.send("hardhat_mine", ["0xA"]);
+    await network.provider.send("evm_increaseTime", [3600]);
+    await network.provider.send("evm_mine");
 
     // deposit collateral
     await ido.connect(participant1).depositCollateral();
@@ -163,7 +168,8 @@ describe("SlothIDO", function () {
     await ido.connect(participant3).deposit(maxAmount.div(10));
 
     // mine some blocks to move time past end
-    await network.provider.send("hardhat_mine", ["0xff"]);
+    await network.provider.send("evm_increaseTime", [7200]);
+    await network.provider.send("evm_mine");
 
     await ido.connect(participant1).harvest();
     await ido.connect(participant2).harvest();
@@ -186,5 +192,25 @@ describe("SlothIDO", function () {
     expect(
       adminBalanceAfter.eq(adminBalanceBefore.add(withdrawAmount))
     ).to.equal(true);
+  });
+
+  it("can have a max contribution", async () => {
+    await mon.connect(participant1).approve(ido.address, maxContributionAmount);
+
+    const maxAmount = raisingAmount;
+
+    // set lower max contribution
+    await ido.setMaxContributionAmount(maxAmount.div(10));
+
+    // mine some blocks to move time past start
+    await network.provider.send("evm_increaseTime", [3600]);
+    await network.provider.send("evm_mine");
+
+    // deposit collateral
+    await ido.connect(participant1).depositCollateral();
+
+    await wone.connect(participant1).approve(ido.address, maxAmount);
+
+    await expect(ido.connect(participant1).deposit(maxAmount)).to.be.reverted;
   });
 });
