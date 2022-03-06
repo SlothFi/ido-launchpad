@@ -31,33 +31,50 @@ contract SlothIDO is ReentrancyGuard {
     }
     
     // Gov Address
-    address public adminAddress;  
+    address public adminAddress;
+
     // Participants
     address[] public addressList;  
+
     // Token being raised
     IERC20 public raisingToken;
+
     // Token being sold    
     IERC20 public offeringToken; 
+
     // Collateral token    
     IERC20 public collateralToken;  
-    // Start block of the IDO sale   
-    uint256 public startBlock;
-    // End block of the IDO sale (end block = start block + x amount of blocks)      
-    uint256 public endBlock;
-    // Harvest block      
-    uint256 public claimBlock;
+
+    // Start time of the IDO sale   
+    uint256 public startTime;
+
+    // End time of the IDO sale
+    uint256 public endTime;
+    
+    // Harvest time      
+    uint256 public claimTime;
+
     // Amount of raisingToken being raised        
-    uint256 public raisingAmount;   
+    uint256 public raisingAmount; 
+
+    // Max amount each participant can contribute
+    uint256 public maxContributionAmount;
+
     // Amount of offeringToken being sold
-    uint256 public offeringAmount;  
+    uint256 public offeringAmount;
+
     // Amount of raisingToken already raised
     uint256 public totalAmount;
+
     // Amount of raisingToken withdrawn by Gov    
     uint256 public totalAdminLpWithdrawn = 0;
+    
     // Amount of collateralToken required to participate in the IDO    
     uint256 public requiredCollateralAmount;    
+
     // 14 days delay
     uint delayForFullSweep = 604800;
+
     // address => amount
     mapping (address => UserInfo) public userInfo;     
 
@@ -73,11 +90,12 @@ contract SlothIDO is ReentrancyGuard {
     constructor(
         IERC20 _raisingToken,
         IERC20 _offeringToken,
-        uint256 _startBlock,
-        uint256 _endBlock,
-        uint256 _claimBlock,
+        uint256 _startTime,
+        uint256 _endTime,
+        uint256 _claimTime,
         uint256 _offeringAmount,
         uint256 _raisingAmount,
+        uint256 _maxContributionAmount,
         address _adminAddress,
         IERC20 _collateralToken,
         uint256 _requiredCollateralAmount
@@ -85,18 +103,19 @@ contract SlothIDO is ReentrancyGuard {
         _raisingToken.balanceOf(address(this));     // Validate token address
         _offeringToken.balanceOf(address(this));    // Validate token address
         _collateralToken.balanceOf(address(this));  // Validate token address
-        require(_endBlock > _startBlock, "start <= end");
-        require(_claimBlock >= _endBlock, "claim has to be >= end");
-        require(_startBlock > block.number, "too soon");
+        require(_endTime > _startTime, "start <= end");
+        require(_claimTime >= _endTime, "claim has to be >= end");
+        require(_startTime > block.timestamp, "too soon");
         require(_adminAddress != address(0), "admin is address(0)");
 
         raisingToken = _raisingToken;
         offeringToken = _offeringToken;
-        startBlock = _startBlock;
-        endBlock = _endBlock;
-        claimBlock = _claimBlock;
+        startTime = _startTime;
+        endTime = _endTime;
+        claimTime = _claimTime;
         offeringAmount = _offeringAmount;
         raisingAmount= _raisingAmount;
+        maxContributionAmount = _maxContributionAmount;
         totalAmount = 0;
         adminAddress = _adminAddress;
         collateralToken = _collateralToken;
@@ -109,43 +128,51 @@ contract SlothIDO is ReentrancyGuard {
     }
 
     function setOfferingAmount(uint256 _offerAmount) public onlyAdmin {
-        require (block.number < startBlock, "ido has already started");
+        require (block.timestamp < startTime, "ido has already started");
         offeringAmount = _offerAmount;
     }
 
     function setRaisingAmount(uint256 _raisingAmount) public onlyAdmin {
-        require (block.number < startBlock, "ido has already started");
+        require (block.timestamp < startTime, "ido has already started");
         raisingAmount= _raisingAmount;
     }
 
-    function setStartBlock(uint256 _startBlock) public onlyAdmin {
-        require (block.number < startBlock, "ido has already started");
-        startBlock= _startBlock;
+    function setMaxContributionAmount(uint256 _maxContributionAmount) public onlyAdmin {
+        require (block.timestamp < startTime, "ido has already started");
+        require(_maxContributionAmount != 0, "can not be 0");
+        maxContributionAmount = _maxContributionAmount;
     }
 
-    function setEndBlock(uint256 _endBlock) public onlyAdmin {
-        require (block.number < startBlock, "ido has already started");
-        endBlock= _endBlock;
+    function setStartTime(uint256 _startTime) public onlyAdmin {
+        require (block.timestamp < startTime, "ido has already started");
+        require (block.timestamp < _startTime, "start time in past");
+        startTime= _startTime;
     }
 
-    function setClaimBlock(uint256 _claimBlock) public onlyAdmin {
-        require(block.number < startBlock, "ido has already started");
-        claimBlock = _claimBlock;
+    function setEndTime(uint256 _endTime) public onlyAdmin {
+        require (block.timestamp < startTime, "ido has already started");
+        endTime= _endTime;
+    }
+
+    function setClaimTime(uint256 _claimTime) public onlyAdmin {
+        require(block.timestamp < startTime, "ido has already started");
+        require(_claimTime > endTime, "invalid claim time");
+        claimTime = _claimTime;
     }
 
     function setRaisingToken(IERC20 _raisingToken) public onlyAdmin {
-        require (block.number < startBlock, "ido has already started");
+        require (block.timestamp < startTime, "ido has already started");
         raisingToken= _raisingToken;
     }
 
     function setOfferingToken(IERC20 _offeringToken) public onlyAdmin {
-        require (block.number < startBlock, "ido has already started");
+        require (block.timestamp < startTime, "ido has already started");
         offeringToken= _offeringToken;
     }
 
     function depositCollateral() public {
-        require (block.number > startBlock, "ido has not started yet");
-        require (block.number < endBlock, "ido has ended");
+        require (block.timestamp > startTime, "ido has not started yet");
+        require (block.timestamp < endTime, "ido has ended");
         require (!userInfo[msg.sender].hasCollateral, "user has already staked collateral");
 
         uint256 collateral_amount = collateralToken.balanceOf(msg.sender);
@@ -159,7 +186,7 @@ contract SlothIDO is ReentrancyGuard {
     }
 
     function deposit(uint256 _amount) public {
-        require (block.number > startBlock && block.number < endBlock, "not ifo time");
+        require (block.timestamp > startTime && block.timestamp < endTime, "not ifo time");
         require (_amount > 0, "need _amount > 0");
         require (userInfo[msg.sender].hasCollateral, "user needs to stake collateral first");
 
@@ -167,6 +194,7 @@ contract SlothIDO is ReentrancyGuard {
             addressList.push(msg.sender);
         }
         raisingToken.safeTransferFrom(msg.sender, address(this), _amount);
+        require (userInfo[msg.sender].amount.add(_amount) <= maxContributionAmount, "over max contribution");
         userInfo[msg.sender].amount = userInfo[msg.sender].amount.add(_amount);
         totalAmount = totalAmount.add(_amount);
         emit Deposit(msg.sender, _amount);
@@ -175,7 +203,7 @@ contract SlothIDO is ReentrancyGuard {
     function harvest() public nonReentrant {
         // Can only be called once for each user
         // Will refund collateral, give tokens for sale, and return an overflow raisingToken
-        require (block.number > claimBlock, "not harvest time");
+        require (block.timestamp > claimTime, "not harvest time");
         require (!userInfo[msg.sender].claimed, "already claimed");
         require (userInfo[msg.sender].hasCollateral, "user needs to stake collateral first");
         uint256 offeringTokenAmount = getOfferingAmount(msg.sender);
@@ -242,12 +270,12 @@ contract SlothIDO is ReentrancyGuard {
     }
 
     function finalOfferingTokenWithdraw() public onlyAdmin {
-        require (block.number > endBlock + delayForFullSweep, "Must wait longer");
+        require (block.timestamp > endTime + delayForFullSweep, "Must wait longer");
         offeringToken.safeTransfer(msg.sender, offeringToken.balanceOf(address(this)));
     }
 
     function finalWithdraw(uint256 _lpAmount) public onlyAdmin {
-        if (block.number < endBlock + delayForFullSweep) {
+        if (block.timestamp < endTime + delayForFullSweep) {
             // Only check this condition for the first 14 days after IFO
             require (_lpAmount + totalAdminLpWithdrawn <= raisingAmount, "withdraw exceeds raisingAmount");
         }
@@ -257,7 +285,7 @@ contract SlothIDO is ReentrancyGuard {
     }
 
     function changeRequiredCollateralAmount(uint256 _newCollateralAmount) public onlyAdmin {
-        require (block.number < startBlock, "ifo already started!");
+        require (block.timestamp < startTime, "ifo already started!");
         uint256 oldCollateralAmount = requiredCollateralAmount;
         requiredCollateralAmount = _newCollateralAmount;
         emit RequiredCollateralChanged(
