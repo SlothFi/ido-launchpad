@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: MIT
-
 pragma solidity 0.8.9;
 
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
@@ -8,15 +7,7 @@ import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import { Pausable } from "@openzeppelin/contracts/security/Pausable.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-
-     //\\___
-    //  \\
-   //    \\    
-  //  /\  \\   
- //   \/   \\    
-//          \\    
-
-contract SlothIDO is ReentrancyGuard {
+contract SlothFiIDO is ReentrancyGuard {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 

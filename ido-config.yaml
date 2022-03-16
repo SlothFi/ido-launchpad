@@ -1,0 +1,14 @@
+# Update parameters below before creating new IDO
+# all amounts are alredy in ether (10^18)
+# All dates are UTC in YYYY-MM-DD hh:mm format
+raiseTokenAddress: "0xE084E29D601661Ac2c0d865b57b604A14450Af53"
+offerTokenAddress: "0x0914eb9e2A79f1758784EADec362b67B41673569"
+startTime: "2022-04-15 00:00"
+endTime: "2022-04-16 00:00"
+claimTime: "2022-04-17 00:00"
+offeringAmount: "10000"
+raisingAmount: "100000"
+maxContributionAmount: "1000"
+adminAddress: "0x3382bb7214c109f12ffe8aa9c39baf7edb991427"
+collateralTokenAddress: "0x73df5f48458018e19594Fa5D4a23F09338386C16"
+collateralAmount: "1000"
