@@ -1,11 +1,11 @@
 import { expect } from "chai";
 import { ethers, network } from "hardhat";
-import { SlothIDO, FixedSupplyToken } from "../typechain";
+import { SlothFiIDO, FixedSupplyToken } from "../typechain";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
-describe("SlothIDO", function () {
+describe("SlothFiIDO", function () {
   // test globals
-  let ido: SlothIDO;
+  let ido: SlothFiIDO;
   let wone: FixedSupplyToken;
   let gme: FixedSupplyToken;
   let mon: FixedSupplyToken;
@@ -50,8 +50,8 @@ describe("SlothIDO", function () {
     const endTime = currentTime + 7200;
     const claimTime = currentTime + 7500;
 
-    const SlothIDO = await ethers.getContractFactory("SlothIDO");
-    ido = await SlothIDO.deploy(
+    const SlothFiIDO = await ethers.getContractFactory("SlothFiIDO");
+    ido = await SlothFiIDO.deploy(
       wone.address,
       gme.address,
       startTime,
@@ -106,7 +106,7 @@ describe("SlothIDO", function () {
 
     // Check depositing raise token works
     const woneBalanceBefore = await wone.balanceOf(participant1.address);
-    const contribution = raisingAmount; // ethers.utils.parseEther("100");
+    const contribution = raisingAmount;
     await wone.connect(participant1).approve(ido.address, contribution);
     await ido.connect(participant1).deposit(contribution);
     const woneBalanceAfter = await wone.balanceOf(participant1.address);
